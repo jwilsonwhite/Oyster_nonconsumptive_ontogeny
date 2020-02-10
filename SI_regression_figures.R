@@ -200,7 +200,7 @@ quartz.save('FigS7.pdf',type="pdf")
 
 #----------------------------------------------------------------------
 # Fig S8: adult oyster growth
-D = read.csv('adult.daily.growth_15Nov2019.csv',header=TRUE)
+D = read.csv('FigS8_data.csv',header=TRUE)
 D$cage = as.factor(D$cage)
 
 m0 = lmer(daily.growth~1+(1|cage),data=D)

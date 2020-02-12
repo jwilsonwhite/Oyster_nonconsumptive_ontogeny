@@ -4,8 +4,8 @@
 library(ggplot2)
 library(lme4)
 library(bbmle)
-library(MCMCglmm)
-library(RColorBrewer)
+#library(MCMCglmm)
+#library(RColorBrewer)
 library(colorspace)
 library(MuMIn)
 
@@ -31,29 +31,6 @@ c = fixef(m4)
 Dtmp$surv.asin = c[1]+Dtmp$mean.prop*c[2]
 Dtmp$surv = (sin(Dtmp$surv.asin))^2
 
-# Hmmm to get a prediction interval with LME, have to use MCMCglmm
-m1.1 = MCMCglmm(fixed = surv.asin~mean.flow,random=~cage.number,data=D)
-m2.1 = MCMCglmm(fixed = surv.asin~mean.sal,random=~cage.number,data=D)
-m3.1 = MCMCglmm(fixed = surv.asin~mean.temp,random=~cage.number,data=D)
-m4.1 = MCMCglmm(fixed = surv.asin~mean.prop,random=~cage.number,data=D)
-m5.1 = MCMCglmm(fixed = surv.asin~mean.chl,random=~cage.number,data=D)
-anova(m1.1,m2.1,m3.1,m4.1,m5.1)
-# Model 5 is the best based on DIC
-# Based on other results, skeptical that MCMCglmm is the best way to go; seems to disagree with lmer in confusing ways.
-# Just stick with lmer, don't put in a ribbon.
-
-# Get predicted line
-Dtmp = data.frame(mean.chl=seq(from=min(D$mean.chl),to=max(D$mean.chl),length.out=100))
-Dtmp$surv.asin = 0
-Dtmp$cage.number = 0
-Pl <- predict(m5.1,newdata=Dtmp,interval='confidence',marginal=m5.1$Random$formula)
-Pl = (sin(Pl))^2
-Dtmp$surv = Pl[,1]
-
-# create color scale: (using RColorBrewer)
-reds = brewer.pal(n = 9, "Blues")[3:9]
-red_palette = colorRampPalette(c(reds[1], reds[4], reds[6]), space = "Lab")
-reds2 = red_palette(length(unique(D$cage.number)))
 
 # Create colorscale (using colorspace)
 reds2 = rainbow_hcl(n=9)
@@ -69,8 +46,6 @@ ggplot(data=D,aes(x=mean.prop,y=surv))+
   theme(legend.position="none",axis.text=element_text(size=12),
         axis.title = element_text(size=14))
 quartz.save('FigS5.pdf',type="pdf")
-
-#geom_ribbon(data=Dtmp,aes(x=Dtmp$mean.chl,ymin=Pl[,2],ymax=Pl[,3]),alpha=0.3)+
 
 #----------------------------------------------------------------------
 
@@ -92,27 +67,7 @@ Dtmp = data.frame(mean.flow=seq(from=min(D$mean.flow),to=max(D$mean.flow),length
 c = fixef(m1)
 Dtmp$growth <- c[1]+Dtmp$mean.flow*c[2]
 
-# Hmmm to get a prediction interval with LME, have to use MCMCglmm
-m1.1 = MCMCglmm(fixed = growth~mean.flow,random=~cage.number,data=D,family='gaussian',nitt=1e6,burn=1e5)
-m2.1 = MCMCglmm(fixed = growth~mean.sal,random=~cage.number,data=D)
-m3.1 = MCMCglmm(fixed = growth~mean.temp,random=~cage.number,data=D)
-m4.1 = MCMCglmm(fixed = growth~mean.prop,random=~cage.number,data=D)
-m5.1 = MCMCglmm(fixed = growth~mean.chl,random=~cage.number,data=D,family='gaussian',nitt=1e6,burn=1e5)
-
 # Model 4 is the best based on DIC, but no clear winner. None have signif regression coefficients.
-
-# Get predicted line
-Dtmp = data.frame(mean.chl=seq(from=min(D$mean.chl),to=max(D$mean.chl),length.out=100))
-Dtmp$surv.asin = 0
-Dtmp$cage.number = 0
-Pl <- predict(m5.1,newdata=Dtmp,interval='confidence',marginal=m5.1$Random$formula)
-Pl = (sin(Pl))^2
-Dtmp$surv = Pl[,1]
-
-# create color scale: (using RColorBrewer)
-reds = brewer.pal(n = 9, "Blues")[3:9]
-red_palette = colorRampPalette(c(reds[1], reds[4], reds[6]), space = "Lab")
-reds2 = red_palette(length(unique(D$cage.number)))
 
 # Create colorscale (using colorspace)
 reds2 = rainbow_hcl(n=9)
@@ -135,7 +90,7 @@ quartz.save('FigS6.pdf',type="pdf")
 #----------------------------------------------------------------------
 # Fig S7: adult oyster survival
 D = read.csv('FigS7_data.csv',header=TRUE)
-D$surv.asin <- asin(sqrt(D$daily.surv))
+D$surv.asin <- asin(sqrt(D$survival))
 D$cage = as.factor(D$cage)
 
 m0 = lmer(surv.asin~1+(1|cage),data=D)
@@ -143,8 +98,7 @@ m1 = lmer(surv.asin~flow+(1|cage),data=D)
 m2 = lmer(surv.asin~salinity+(1|cage),data=D)
 m3 = lmer(surv.asin~temp+(1|cage),data=D)
 m4 = lmer(surv.asin~exposure+(1|cage),data=D)
-m5 = lmer(surv.asin~waterht+(1|cage),data=D)
-AICctab(m0,m1,m2,m3,m4,m5,weights=TRUE)
+AICctab(m0,m1,m2,m3,m4,weights=TRUE)
 # m4 is best (exposure)
 
 # Get predicted line
@@ -156,41 +110,18 @@ c = fixef(m0)
 Dtmp$null = Dtmp$surv
 Dtmp$null = (sin(c[1]))^2
 
-
-# Hmmm to get a prediction interval with LME, have to use MCMCglmm
-m1.1 = MCMCglmm(fixed = surv.asin~flow,random=~cage,data=D)
-m2.1 = MCMCglmm(fixed = surv.asin~salinity,random=~cage,data=D)
-m3.1 = MCMCglmm(fixed = surv.asin~temp,random=~cage,data=D)
-m4.1 = MCMCglmm(fixed = surv.asin~exposure,random=~cage,data=D)
-m5.1 = MCMCglmm(fixed = surv.asin~waterht,random=~cage,data=D)
-anova(m1.1,m2.1,m3.1,m4.1,m5.1)
-# Model 5 is the best based on DIC
-
-# Get predicted line
-Dtmp = data.frame(mean.chl=seq(from=min(D$mean.chl),to=max(D$mean.chl),length.out=100))
-Dtmp$surv.asin = 0
-Dtmp$cage.number = 0
-Pl <- predict(m5.1,newdata=Dtmp,interval='confidence',marginal=m5.1$Random$formula)
-Pl = (sin(Pl))^2
-Dtmp$surv = Pl[,1]
-
-# create color scale: (using RColorBrewer)
-reds = brewer.pal(n = 9, "Blues")[3:9]
-red_palette = colorRampPalette(c(reds[1], reds[4], reds[6]), space = "Lab")
-reds2 = red_palette(length(unique(D$cage.number)))
-
 # Create colorscale (using colorspace)
 reds2 = rainbow_hcl(n=9)
 
 quartz(width=4,height=4)
-ggplot(data=D,aes(x=exposure,y=daily.surv))+
+ggplot(data=D,aes(x=exposure,y=survival))+
   geom_jitter(aes(color=cage),width=0.002,height=0.0001,shape=21,stroke=1)+
   scale_color_manual(values=reds2)+
   #geom_ribbon(data=Dtmp,aes(x=Dtmp$mean.chl,ymin=Pl[,2],ymax=Pl[,3]),alpha=0.3)+
   geom_line(data=Dtmp,aes(x=exposure,y=surv),linetype=2)+
   geom_line(data=Dtmp,aes(x=exposure,y=null))+
   xlab('Proportion of day exposed at low tide')+
-  ylab('Oyster survival after one month')+
+  ylab('Oyster survival after four months')+
   theme_bw()+
   theme(legend.position="none",axis.text=element_text(size=12),
         axis.title = element_text(size=14))
